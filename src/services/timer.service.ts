@@ -1,6 +1,9 @@
 
 import { Injectable, signal, computed, effect } from '@angular/core';
 
+// Declare chrome API for extension support
+declare const chrome: any;
+
 export type TimerMode = 'work' | 'shortBreak' | 'longBreak';
 
 export interface TimerSettings {
@@ -19,12 +22,28 @@ export interface SessionRecord {
   durationMinutes: number;
 }
 
+export const PRESET_SITES = [
+  { name: 'YouTube', domain: 'youtube.com', icon: 'fa-brands fa-youtube', color: 'text-red-500' },
+  { name: 'TikTok', domain: 'tiktok.com', icon: 'fa-brands fa-tiktok', color: 'text-pink-400' },
+  { name: 'Instagram', domain: 'instagram.com', icon: 'fa-brands fa-instagram', color: 'text-pink-500' },
+  { name: 'Facebook', domain: 'facebook.com', icon: 'fa-brands fa-facebook', color: 'text-blue-500' },
+  { name: 'X / Twitter', domain: 'twitter.com', icon: 'fa-brands fa-x-twitter', color: 'text-slate-100' },
+  { name: 'Reddit', domain: 'reddit.com', icon: 'fa-brands fa-reddit', color: 'text-orange-500' },
+  { name: 'Netflix', domain: 'netflix.com', icon: 'fa-solid fa-film', color: 'text-red-600' },
+  { name: 'Twitch', domain: 'twitch.tv', icon: 'fa-brands fa-twitch', color: 'text-purple-400' },
+  { name: 'Discord', domain: 'discord.com', icon: 'fa-brands fa-discord', color: 'text-indigo-400' },
+  { name: 'Pinterest', domain: 'pinterest.com', icon: 'fa-brands fa-pinterest', color: 'text-red-500' },
+  { name: 'Amazon', domain: 'amazon.com', icon: 'fa-brands fa-amazon', color: 'text-amber-500' },
+  { name: 'LinkedIn', domain: 'linkedin.com', icon: 'fa-brands fa-linkedin', color: 'text-blue-400' }
+];
+
 @Injectable({
   providedIn: 'root'
 })
 export class TimerService {
   private readonly STORAGE_KEY = 'focusflow_settings';
   private readonly HISTORY_KEY = 'focusflow_history';
+  private readonly BLOCKED_SITES_KEY = 'focusflow_blocked_sites';
 
   // State
   settings = signal<TimerSettings>({
@@ -35,6 +54,16 @@ export class TimerService {
     autoStart: false,
     metronome: false
   });
+
+  blockedSites = signal<string[]>([
+    'youtube.com',
+    'tiktok.com',
+    'twitter.com',
+    'instagram.com',
+    'facebook.com',
+    'reddit.com',
+    'netflix.com'
+  ]);
 
   mode = signal<TimerMode>('work');
   isRunning = signal<boolean>(false);
@@ -53,12 +82,16 @@ export class TimerService {
   progress = computed(() => {
     const total = this.totalSeconds();
     if (total === 0) return 0;
-    return (this.timeLeft() / total);
+    return Math.min(1, this.timeLeft() / total);
   });
 
   sessionsCompletedToday = computed(() => {
     const today = new Date().setHours(0, 0, 0, 0);
     return this.history().filter(s => s.mode === 'work' && new Date(s.timestamp).setHours(0, 0, 0, 0) === today).length;
+  });
+
+  isBlockingActive = computed(() => {
+    return this.mode() === 'work' && this.isRunning();
   });
 
   private timerInterval: any = null;
@@ -73,7 +106,8 @@ export class TimerService {
       const seconds = this.timeLeft() % 60;
       const display = `${minutes}:${seconds.toString().padStart(2, '0')}`;
       const modeLabel = this.mode() === 'work' ? 'Focus' : 'Break';
-      document.title = `${display} - ${modeLabel}`;
+      const blockedPrefix = this.isBlockingActive() ? '🛡️ ' : '';
+      document.title = `${blockedPrefix}${display} - ${modeLabel}`;
     });
 
     // Handle session end
@@ -81,6 +115,11 @@ export class TimerService {
       if (this.timeLeft() === 0 && this.isRunning()) {
         this.handleSessionComplete();
       }
+    });
+
+    // Extension Sync Effect
+    effect(() => {
+      this.syncExtensionState();
     });
   }
 
@@ -113,6 +152,10 @@ export class TimerService {
     this.timeLeft.set(this.totalSeconds());
   }
 
+  addTime(minutes: number) {
+    this.timeLeft.update(t => t + (minutes * 60));
+  }
+
   setMode(newMode: TimerMode) {
     this.pause();
     this.mode.set(newMode);
@@ -125,6 +168,29 @@ export class TimerService {
     if (!this.isRunning()) {
       this.timeLeft.set(this.totalSeconds());
     }
+  }
+
+  toggleSite(site: string) {
+    const clean = site.trim().toLowerCase();
+    if (this.blockedSites().includes(clean)) {
+      this.removeBlockedSite(clean);
+    } else {
+      this.addBlockedSite(clean);
+    }
+  }
+
+  addBlockedSite(site: string) {
+    // Simple URL cleanup
+    const clean = site.trim().replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0].toLowerCase();
+    if (clean && !this.blockedSites().includes(clean)) {
+      this.blockedSites.update(sites => [...sites, clean]);
+      this.saveBlockedSites();
+    }
+  }
+
+  removeBlockedSite(site: string) {
+    this.blockedSites.update(sites => sites.filter(s => s !== site));
+    this.saveBlockedSites();
   }
 
   private tick() {
@@ -151,9 +217,36 @@ export class TimerService {
       this.history.update(h => [record, ...h].slice(0, 50));
       this.saveHistory();
     }
-
-    // Auto switch mode logic could go here, but manual is often better
   }
+
+  // --- Extension Communication ---
+
+  private syncExtensionState() {
+    // Check if running in extension context
+    const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage;
+    
+    if (!isExtension) return;
+
+    // We only block if we are in 'work' mode and the timer is running
+    const shouldBlock = this.isBlockingActive();
+    const sites = this.blockedSites();
+
+    const payload = {
+      type: 'SYNC_BLOCKING_STATE',
+      isBlocking: shouldBlock,
+      sites: sites
+    };
+
+    try {
+      chrome.runtime.sendMessage(payload).catch(() => {
+        // Ignore errors if background script is not ready or context invalidated
+      });
+    } catch (e) {
+      console.warn('Failed to sync with extension background:', e);
+    }
+  }
+
+  // --- Audio & Utils ---
 
   private playTick() {
     this.playTone(800, 0.01, 0.1);
@@ -199,12 +292,19 @@ export class TimerService {
     localStorage.setItem(this.HISTORY_KEY, JSON.stringify(this.history()));
   }
 
+  private saveBlockedSites() {
+    localStorage.setItem(this.BLOCKED_SITES_KEY, JSON.stringify(this.blockedSites()));
+  }
+
   private loadState() {
     const saved = localStorage.getItem(this.STORAGE_KEY);
     if (saved) this.settings.set(JSON.parse(saved));
     
     const savedHist = localStorage.getItem(this.HISTORY_KEY);
     if (savedHist) this.history.set(JSON.parse(savedHist));
+
+    const savedSites = localStorage.getItem(this.BLOCKED_SITES_KEY);
+    if (savedSites) this.blockedSites.set(JSON.parse(savedSites));
 
     this.timeLeft.set(this.totalSeconds());
   }

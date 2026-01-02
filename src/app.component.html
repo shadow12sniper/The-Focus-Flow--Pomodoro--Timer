@@ -2,16 +2,24 @@
 <div class="flex flex-col items-center justify-center p-6 w-full max-w-2xl min-h-screen">
   
   <!-- Header / Nav -->
-  <header class="w-full flex justify-between items-center mb-12">
+  <header class="w-full flex justify-between items-center mb-8">
     <div class="flex items-center gap-2">
-      <div class="w-8 h-8 bg-rose-500 rounded-lg flex items-center justify-center">
-        <i class="fa-solid fa-clock text-white text-sm"></i>
+      <div class="w-8 h-8 bg-rose-500 rounded-lg flex items-center justify-center shadow-lg shadow-rose-500/20">
+        <!-- Logo Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-white">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
       </div>
       <h1 class="text-xl font-bold tracking-tight">FocusFlow</h1>
     </div>
     <button (click)="isSettingsOpen.set(true)" 
-            class="w-10 h-10 flex items-center justify-center rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-all">
-      <i class="fa-solid fa-gear text-slate-400"></i>
+            class="group flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 hover:bg-slate-800 transition-all">
+      <span class="text-sm font-medium text-slate-400 group-hover:text-slate-200">Settings</span>
+      <!-- Settings Icon -->
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-slate-400 group-hover:text-slate-200 transition-transform group-hover:rotate-90">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.205l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
     </button>
   </header>
 
@@ -20,7 +28,7 @@
         [class]="getModeBgClass()">
     
     <!-- Mode Switcher -->
-    <nav class="flex p-1 bg-slate-950/50 rounded-2xl mb-12 border border-slate-800">
+    <nav class="flex p-1 bg-slate-950/50 rounded-2xl mb-10 border border-slate-800">
       <button (click)="setMode('work')"
               [class]="timer.mode() === 'work' ? 'bg-slate-800 text-rose-400 shadow-sm' : 'text-slate-400 hover:text-slate-200'"
               class="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">
@@ -38,33 +46,67 @@
       </button>
     </nav>
 
+    <!-- Blocker Status -->
+    <div class="mb-10">
+      @if (timer.isBlockingActive()) {
+        <div class="flex items-center gap-2 px-4 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-full text-rose-300 text-xs font-bold uppercase tracking-wider shadow-[0_0_15px_rgba(244,63,94,0.1)] animate-pulse">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-3.5 h-3.5">
+            <path fill-rule="evenodd" d="M12.516 2.17a.75.75 0 00-1.032 0 11.209 11.209 0 01-7.877 3.08.75.75 0 00-.722.515A12.74 12.74 0 002.25 9.75c0 5.942 4.064 10.933 9.563 12.348a.749.749 0 00.374 0c5.499-1.415 9.563-6.406 9.563-12.348 0-1.352-.272-2.636-.759-3.801a.75.75 0 00-.722-.515 11.209 11.209 0 01-7.877-3.08zM12 17.25a5.25 5.25 0 110-10.5 5.25 5.25 0 010 10.5zm0-1.5a3.75 3.75 0 100-7.5 3.75 3.75 0 000 7.5z" clip-rule="evenodd" />
+          </svg>
+          Blocking {{ timer.blockedSites().length }} Sites
+        </div>
+      } @else {
+        <div class="flex items-center gap-2 px-4 py-1.5 bg-slate-900/40 border border-slate-800 rounded-full text-slate-500 text-xs font-bold uppercase tracking-wider">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z" />
+          </svg>
+          Shield Ready
+        </div>
+      }
+    </div>
+
     <!-- Timer Visual -->
     <app-timer-display class="mb-12" />
 
     <!-- Main Controls -->
     <div class="flex items-center gap-6">
-      <button (click)="timer.reset()" 
-              class="w-14 h-14 flex items-center justify-center rounded-2xl bg-slate-950 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition-all">
-        <i class="fa-solid fa-rotate-right text-lg"></i>
+      <!-- Left: Add Time -->
+      <button (click)="timer.addTime(1)" 
+              class="w-14 h-14 flex items-center justify-center rounded-2xl bg-slate-950 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition-all"
+              title="Add 1 Minute">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
       </button>
 
+      <!-- Center: Play/Pause -->
       <button (click)="timer.toggle()" 
               [class]="timer.isRunning() ? 'bg-slate-200 text-slate-950' : 'bg-rose-500 text-white'"
               class="px-10 h-16 rounded-2xl font-bold text-lg uppercase tracking-widest shadow-2xl transition-all active:scale-95 group">
         @if (timer.isRunning()) {
           <span class="flex items-center gap-3">
-            <i class="fa-solid fa-pause"></i> Pause
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path fill-rule="evenodd" d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z" clip-rule="evenodd" />
+            </svg>
+            Pause
           </span>
         } @else {
           <span class="flex items-center gap-3">
-            <i class="fa-solid fa-play"></i> Focus
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+              <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.348c1.295.712 1.295 2.573 0 3.285L7.28 19.991c-1.25.687-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
+            </svg>
+            Focus
           </span>
         }
       </button>
 
-      <button (click)="timer.setMode(timer.mode())"
-              class="w-14 h-14 flex items-center justify-center rounded-2xl bg-slate-950 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition-all">
-        <i class="fa-solid fa-forward-step text-lg"></i>
+      <!-- Right: Reset -->
+      <button (click)="timer.reset()"
+              class="w-14 h-14 flex items-center justify-center rounded-2xl bg-slate-950 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 transition-all"
+              title="Reset Timer">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+        </svg>
       </button>
     </div>
   </main>
@@ -87,7 +129,10 @@
     <div class="bg-slate-900/50 rounded-3xl p-6 border border-slate-800 relative overflow-hidden">
       <div class="flex items-center justify-between mb-4">
         <span class="text-xs font-bold uppercase tracking-widest text-slate-500">Recent Sessions</span>
-        <i class="fa-solid fa-history text-slate-600 text-xs"></i>
+        <!-- History Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-slate-600">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
       </div>
       <div class="space-y-2">
         @for (session of timer.history().slice(0, 2); track session.id) {

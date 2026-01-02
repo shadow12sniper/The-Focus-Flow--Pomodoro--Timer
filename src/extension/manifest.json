@@ -1,0 +1,27 @@
+
+{
+  "manifest_version": 3,
+  "name": "FocusFlow - Pomodoro Blocker",
+  "version": "1.0",
+  "description": "A sophisticated Pomodoro timer that blocks distractions.",
+  "permissions": [
+    "storage",
+    "declarativeNetRequest",
+    "alarms"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "index.html",
+    "default_title": "FocusFlow"
+  },
+  "icons": {
+    "16": "assets/icon-16.png",
+    "48": "assets/icon-48.png",
+    "128": "assets/icon-128.png"
+  }
+}
